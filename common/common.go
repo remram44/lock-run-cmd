@@ -1,15 +1,17 @@
 package common
 
+import "crypto/rand"
+import "encoding/hex"
 import "flag"
 import "fmt"
 import "time"
 
-var LeaseInterval = flag.Duration(
+var leaseInterval = flag.Duration(
 	"lease-interval",
 	time.Duration(15*time.Second),
 	"Interval between lease renewal",
 )
-var LeaseDuration *time.Duration = nil
+var leaseDuration *time.Duration = nil
 
 func RegisterFlags(fs *flag.FlagSet) {
 	fs.Func("lease-duration", "Length of the lease", func(arg string) error {
@@ -18,9 +20,21 @@ func RegisterFlags(fs *flag.FlagSet) {
 		if duration, err = time.ParseDuration(arg); err != nil {
 			return err
 		}
-		LeaseDuration = &duration
+		leaseDuration = &duration
 		return nil
 	})
+}
+
+func LeaseInterval() time.Duration {
+	return *leaseInterval
+}
+
+func LeaseDuration() time.Duration {
+	if leaseDuration != nil {
+		return *leaseDuration
+	} else {
+		return *leaseInterval * 2
+	}
 }
 
 func SetBool(target *bool) func(string) error {
@@ -35,4 +49,13 @@ func SetBool(target *bool) func(string) error {
 		}
 		return nil
 	}
+}
+
+func RandomIdentity() (string, error) {
+	bytes := make([]byte, 20)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
