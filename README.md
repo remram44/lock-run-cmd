@@ -23,23 +23,23 @@ Example usage
 Lock via a Kubernetes API object mynamespace/myprogram-lease:
 
 ```
-$ lock-run-cmd --kube-config=$KUBECONFIG --kube-namespace=mynamespace --kube-lease-object=myprogram-lease ./myprogram
+$ lock-run-cmd k8s --kubeconfig=$KUBECONFIG --namespace=mynamespace --lease-object=myprogram-lease ./myprogram
 ```
 
 Lock via ETCD:
 
 ```
-$ lock-run-cmd --etcd-endpoints=10.0.1.1:2379 --etcd-cacert=/etc/etcd/ca.crt --etcd-cert=/etc/etcd/client.crt --etcd-key=/etc/etcd/client.key --etcd-lease-key=myprogram-lease ./myprogram
+$ lock-run-cmd etcd --endpoints=10.0.1.1:2379 --cacert=/etc/etcd/ca.crt --cert=/etc/etcd/client.crt --key=/etc/etcd/client.key --lease-key=myprogram-lease ./myprogram
 ```
 
 Lock via S3:
 
 ```
-$ lock-run-cmd --s3-bucket=myprogram --s3-object=myprogram-lease --lease-interval 60s ./myprogram
+$ lock-run-cmd s3 --bucket=myprogram --object=myprogram-lease --lease-interval 60s ./myprogram
 ```
 
 Lock via Redis:
 
 ```
-$ lock-run-cmd --redis-endpoint=redis://127.0.0.1:6379/0 --redis-key myprogram-lease
+$ lock-run-cmd redis --endpoint=redis://127.0.0.1:6379/0 --key=myprogram-lease ./myprogram
 ```
