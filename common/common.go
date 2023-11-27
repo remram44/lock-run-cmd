@@ -1,6 +1,5 @@
 package common
 
-import "errors"
 import "flag"
 import "fmt"
 import "time"
@@ -32,7 +31,7 @@ func SetBool(target *bool) func(string) error {
 		case "false":
 			*target = false
 		default:
-			return errors.New(fmt.Sprintf("invalid boolean: %v", arg))
+			return fmt.Errorf("invalid boolean: %v", arg)
 		}
 		return nil
 	}
