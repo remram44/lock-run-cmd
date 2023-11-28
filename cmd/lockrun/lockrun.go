@@ -4,8 +4,8 @@ import "fmt"
 import "log"
 import "os"
 
-import "github.com/remram44/lock-run-cmd/k8s"
-import "github.com/remram44/lock-run-cmd/etcd"
+import "github.com/remram44/lock-run-cmd/internal/k8s"
+import "github.com/remram44/lock-run-cmd/internal/etcd"
 
 func main() {
 	usage := func() {

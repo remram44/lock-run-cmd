@@ -13,31 +13,32 @@ import "k8s.io/client-go/kubernetes"
 import election "k8s.io/client-go/tools/leaderelection"
 import election_resource "k8s.io/client-go/tools/leaderelection/resourcelock"
 
-import "github.com/remram44/lock-run-cmd/common"
+import "github.com/remram44/lock-run-cmd"
+import "github.com/remram44/lock-run-cmd/internal/cli"
 
 func Main(args []string) error {
 	// Set up command line parser
-	cli := flag.NewFlagSet("k8s", flag.ExitOnError)
-	common.RegisterFlags(cli)
+	flagset := flag.NewFlagSet("k8s", flag.ExitOnError)
+	cli.RegisterFlags(flagset)
 
-	kubeconfig := cli.String("kubeconfig", "~/.kube/config", "Configuration file")
+	kubeconfig := flagset.String("kubeconfig", "~/.kube/config", "Configuration file")
 
 	in_cluster := false
-	cli.BoolFunc("in-cluster", "Use in-cluster config", common.SetBool(&in_cluster))
+	flagset.BoolFunc("in-cluster", "Use in-cluster config", cli.SetBool(&in_cluster))
 
-	namespace := cli.String("namespace", "default", "Kubernetes namespace")
+	namespace := flagset.String("namespace", "default", "Kubernetes namespace")
 
-	object_name := cli.String("lease-object", "lock", "Lease object name")
+	object_name := flagset.String("lease-object", "lock", "Lease object name")
 
-	if err := cli.Parse(args); err != nil {
+	if err := flagset.Parse(args); err != nil {
 		return err
 	}
 
-	identity := common.Identity()
+	identity := cli.Identity()
 	log.Printf("Using identity %v", identity)
 
 	// Debug
-	log.Printf("kubeconfig=%v in_cluster=%v namespace=%v lease-interval=%v lease-duration=%v", *kubeconfig, in_cluster, namespace, common.LeaseInterval(), common.LeaseDuration())
+	log.Printf("kubeconfig=%v in_cluster=%v namespace=%v lease-interval=%v lease-duration=%v", *kubeconfig, in_cluster, namespace, cli.LeaseInterval(), cli.LeaseDuration())
 
 	// Create Kubernetes API client
 	var err error
@@ -57,7 +58,7 @@ func Main(args []string) error {
 	}
 
 	// Create command
-	cmd := common.NewCommandRunner(cli.Args())
+	cmd := lockrun.NewCommandRunner(flagset.Args())
 
 	// Kick off leaderelection code
 	elect_ctx, elect_cancel := context.WithCancel(context.Background())
@@ -76,8 +77,8 @@ func Main(args []string) error {
 	election.RunOrDie(elect_ctx, election.LeaderElectionConfig{
 		Lock:            lock,
 		ReleaseOnCancel: true,
-		LeaseDuration:   common.LeaseDuration(),
-		RenewDeadline:   common.LeaseInterval(),
+		LeaseDuration:   cli.LeaseDuration(),
+		RenewDeadline:   cli.LeaseInterval(),
 		RetryPeriod:     5 * time.Second,
 		Callbacks: election.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {

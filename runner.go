@@ -1,4 +1,4 @@
-package common
+package lockrun
 
 import "fmt"
 import "log"
@@ -6,6 +6,8 @@ import "os"
 import "os/signal"
 import "syscall"
 import "time"
+
+import "github.com/remram44/lock-run-cmd/internal/cli"
 
 type CommandRunner struct {
 	args    []string
@@ -78,7 +80,7 @@ func (runner *CommandRunner) Stop() {
 		} else {
 			log.Printf("Process was terminated by a signal")
 		}
-	case <-time.After(GracePeriod()):
+	case <-time.After(cli.GracePeriod()):
 		log.Print("Grace period elapsed, sending SIGKILL...")
 		runner.process.Signal(syscall.SIGKILL)
 	}
