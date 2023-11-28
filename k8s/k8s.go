@@ -60,7 +60,7 @@ func Main(args []string) error {
 	}
 
 	// Create command
-	cmd_args := []string{"/bin/sh", "-c", "while true; do sleep 5; echo running; done"}
+	cmd_args := cli.Args()
 	var process *os.Process = nil
 	process_exited := make(chan *os.ProcessState, 1)
 
