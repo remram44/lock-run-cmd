@@ -1,4 +1,4 @@
-package etcd
+package s3
 
 import "context"
 import "errors"
@@ -13,15 +13,9 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	flagset := flag.NewFlagSet("k8s", flag.ExitOnError)
 	cli.RegisterFlags(flagset)
 
-	endpoints := flagset.String("endpoints", "127.0.0.1:2379", "Comma-separated list of host:port")
+	bucket := flagset.String("bucket", "", "Bucket to write to")
 
-	ca_cert := flagset.String("cacert", "", "Path to CA certificate")
-
-	client_cert := flagset.String("cert", "", "Path to client certificate")
-
-	client_key := flagset.String("key", "", "Path to client key")
-
-	key := flagset.String("lease-key", "lock", "ETCD key")
+	object := flagset.String("object", "lock", "Object to write")
 
 	if err := flagset.Parse(args); err != nil {
 		return nil, nil, err
@@ -30,17 +24,17 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	identity := cli.Identity()
 	log.Printf("Using identity %v", identity)
 
-	// Create ETCD client
+	// Create S3 client
 	// TODO
-	log.Println(endpoints, ca_cert, client_cert, client_key, key)
+	log.Println(bucket, object)
 
-	locking_system := EtcdLockingSystem{}
+	locking_system := S3LockingSystem{}
 	return &locking_system, flagset.Args(), nil
 }
 
-type EtcdLockingSystem struct{}
+type S3LockingSystem struct{}
 
-func (ls *EtcdLockingSystem) Run(
+func (ls *S3LockingSystem) Run(
 	ctx context.Context,
 	onLockAcquired func(),
 	onLockLost func(),
@@ -48,6 +42,6 @@ func (ls *EtcdLockingSystem) Run(
 	return errors.New("Unimplemented") // TODO
 }
 
-func (ls *EtcdLockingSystem) Stop() {
+func (ls *S3LockingSystem) Stop() {
 	// TODO
 }

@@ -8,6 +8,7 @@ import "os"
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/internal/k8s"
 import "github.com/remram44/lock-run-cmd/internal/etcd"
+import "github.com/remram44/lock-run-cmd/internal/s3"
 
 func main() {
 	// Get locking system from command line
@@ -29,6 +30,8 @@ func main() {
 		locking_system, args, err = k8s.Parse(os.Args[2:])
 	case "etcd":
 		locking_system, args, err = etcd.Parse(os.Args[2:])
+	case "s3":
+		locking_system, args, err = s3.Parse(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)

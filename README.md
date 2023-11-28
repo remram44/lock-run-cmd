@@ -37,9 +37,3 @@ Lock via S3:
 ```
 $ lock-run-cmd s3 --bucket=myprogram --object=myprogram-lease --lease-interval 60s ./myprogram
 ```
-
-Lock via Redis:
-
-```
-$ lock-run-cmd redis --endpoint=redis://127.0.0.1:6379/0 --key=myprogram-lease ./myprogram
-```
