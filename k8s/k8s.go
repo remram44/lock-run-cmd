@@ -4,9 +4,6 @@ import "context"
 import "flag"
 import "fmt"
 import "log"
-import "os"
-import "os/signal"
-import "syscall"
 import "time"
 
 import k8sclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -60,22 +57,7 @@ func Main(args []string) error {
 	}
 
 	// Create command
-	cmd_args := cli.Args()
-	var process *os.Process = nil
-	process_exited := make(chan *os.ProcessState, 1)
-
-	// Forward SIGTERM
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		for {
-			<-ch
-			log.Print("Received SIGTERM, forwarding")
-			if process != nil {
-				process.Signal(syscall.SIGINT)
-			}
-		}
-	}()
+	cmd := common.NewCommandRunner(cli.Args())
 
 	// Kick off leaderelection code
 	elect_ctx, elect_cancel := context.WithCancel(context.Background())
@@ -100,52 +82,15 @@ func Main(args []string) error {
 		Callbacks: election.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
 				log.Print("OnStartedLeading()")
-				log.Print("StartProcess()...")
-				process, err = os.StartProcess(
-					cmd_args[0],
-					cmd_args,
-					&os.ProcAttr{
-						// Inherit pipes
-						Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
-					},
-				)
-				if err != nil {
-					log.Printf("Error running command: %v", err)
-					log.Print("elect_cancel()")
-					elect_cancel()
-				} else {
-					log.Print("cmd started")
+				if err := cmd.Run(elect_cancel); err != nil {
+					log.Fatal(err)
 				}
-
-				// Start a goroutine to send the process exit state on a channel
-				go func() {
-					state, err := process.Wait()
-					if err != nil {
-						log.Fatalf("Error waiting for command: %v", err)
-					}
-					log.Print("command exited")
-					process_exited <- state
-					log.Print("elect_cancel()")
-					elect_cancel()
-				}()
 			},
 			OnStoppedLeading: func() {
 				log.Print("OnStoppedLeading()")
-				log.Print("Sending SIGTERM...")
-				process.Signal(syscall.SIGINT)
-				select {
-				case state := <-process_exited:
-					if state.Exited() {
-						log.Printf("Process exited with status %v", state.ExitCode())
-					} else {
-						log.Printf("Process was terminated by a signal")
-					}
-				case <-time.After(common.GracePeriod()):
-					log.Print("Grace period elapsed, sending SIGKILL...")
-					process.Signal(syscall.SIGKILL)
-					log.Print("elect_cancel()")
-					elect_cancel()
-				}
+				cmd.Stop()
+				log.Print("elect_cancel()")
+				elect_cancel()
 			},
 		},
 	})
