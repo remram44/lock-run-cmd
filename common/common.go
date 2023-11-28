@@ -13,6 +13,11 @@ var leaseInterval = flag.Duration(
 	"Interval between lease renewal",
 )
 var leaseDuration *time.Duration = nil
+var gracePeriod = flag.Duration(
+	"grace-period",
+	time.Duration(5*time.Second),
+	"Grace period between SIGTERM and SIGKILL",
+)
 var identity *string = nil
 
 func RegisterFlags(fs *flag.FlagSet) {
@@ -42,6 +47,10 @@ func LeaseDuration() time.Duration {
 	} else {
 		return *leaseInterval * 2
 	}
+}
+
+func GracePeriod() time.Duration {
+	return *gracePeriod
 }
 
 func Identity() string {

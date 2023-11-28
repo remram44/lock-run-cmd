@@ -59,18 +59,27 @@ func Main(args []string) error {
 		return err
 	}
 
-	// Create a Context, cancelled on SIGTERM
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Create command
+	cmd_args := []string{"/bin/sh", "-c", "while true; do sleep 5; echo running; done"}
+	var process *os.Process = nil
+	process_exited := make(chan *os.ProcessState, 1)
+
+	// Forward SIGTERM
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-ch
-		log.Print("Received SIGTERM, shutting down")
-		cancel()
+		for {
+			<-ch
+			log.Print("Received SIGTERM, forwarding")
+			if process != nil {
+				process.Signal(syscall.SIGINT)
+			}
+		}
 	}()
 
 	// Kick off leaderelection code
+	elect_ctx, elect_cancel := context.WithCancel(context.Background())
+	defer elect_cancel()
 	lock := &election_resource.LeaseLock{
 		LeaseMeta: k8smetav1.ObjectMeta{
 			Name:      *object_name,
@@ -81,7 +90,8 @@ func Main(args []string) error {
 			Identity: identity,
 		},
 	}
-	election.RunOrDie(ctx, election.LeaderElectionConfig{
+	log.Print("election.RunOrDie()...")
+	election.RunOrDie(elect_ctx, election.LeaderElectionConfig{
 		Lock:            lock,
 		ReleaseOnCancel: true,
 		LeaseDuration:   common.LeaseDuration(),
@@ -89,10 +99,53 @@ func Main(args []string) error {
 		RetryPeriod:     5 * time.Second,
 		Callbacks: election.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
-				// TODO
+				log.Print("OnStartedLeading()")
+				log.Print("StartProcess()...")
+				process, err = os.StartProcess(
+					cmd_args[0],
+					cmd_args,
+					&os.ProcAttr{
+						// Inherit pipes
+						Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+					},
+				)
+				if err != nil {
+					log.Printf("Error running command: %v", err)
+					log.Print("elect_cancel()")
+					elect_cancel()
+				} else {
+					log.Print("cmd started")
+				}
+
+				// Start a goroutine to send the process exit state on a channel
+				go func() {
+					state, err := process.Wait()
+					if err != nil {
+						log.Fatalf("Error waiting for command: %v", err)
+					}
+					log.Print("command exited")
+					process_exited <- state
+					log.Print("elect_cancel()")
+					elect_cancel()
+				}()
 			},
 			OnStoppedLeading: func() {
-				// TODO
+				log.Print("OnStoppedLeading()")
+				log.Print("Sending SIGTERM...")
+				process.Signal(syscall.SIGINT)
+				select {
+				case state := <-process_exited:
+					if state.Exited() {
+						log.Printf("Process exited with status %v", state.ExitCode())
+					} else {
+						log.Printf("Process was terminated by a signal")
+					}
+				case <-time.After(common.GracePeriod()):
+					log.Print("Grace period elapsed, sending SIGKILL...")
+					process.Signal(syscall.SIGKILL)
+					log.Print("elect_cancel()")
+					elect_cancel()
+				}
 			},
 		},
 	})
