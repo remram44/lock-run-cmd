@@ -16,7 +16,7 @@ import election_resource "k8s.io/client-go/tools/leaderelection/resourcelock"
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/internal/cli"
 
-func Main(args []string) error {
+func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	// Set up command line parser
 	flagset := flag.NewFlagSet("k8s", flag.ExitOnError)
 	cli.RegisterFlags(flagset)
@@ -31,14 +31,11 @@ func Main(args []string) error {
 	object_name := flagset.String("lease-object", "lock", "Lease object name")
 
 	if err := flagset.Parse(args); err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	identity := cli.Identity()
 	log.Printf("Using identity %v", identity)
-
-	// Debug
-	log.Printf("kubeconfig=%v in_cluster=%v namespace=%v lease-interval=%v lease-duration=%v", *kubeconfig, in_cluster, namespace, cli.LeaseInterval(), cli.LeaseDuration())
 
 	// Create Kubernetes API client
 	var err error
@@ -49,28 +46,49 @@ func Main(args []string) error {
 		config, err = k8sclientcmd.BuildConfigFromFlags("", *kubeconfig)
 	}
 	if err != nil {
-		return fmt.Errorf("Can't load Kubernetes config: %w", err)
+		return nil, nil, fmt.Errorf("Can't load Kubernetes config: %w", err)
 	}
 	config.UserAgent = "lock-run-cmd"
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	// Create command
-	cmd := lockrun.NewCommandRunner(flagset.Args())
+	locking_system := K8sLockingSystem{
+		namespace:   *namespace,
+		object_name: *object_name,
+		clientset:   clientset,
+		identity:    identity,
+		ctx_cancel:  nil,
+	}
+	return &locking_system, flagset.Args(), nil
+}
 
+type K8sLockingSystem struct {
+	namespace   string
+	object_name string
+	identity    string
+	clientset   *kubernetes.Clientset
+	ctx_cancel  func()
+}
+
+func (ls *K8sLockingSystem) Run(
+	ctx context.Context,
+	onLockAcquired func(),
+	onLockLost func(),
+) error {
 	// Kick off leaderelection code
-	elect_ctx, elect_cancel := context.WithCancel(context.Background())
+	elect_ctx, elect_cancel := context.WithCancel(ctx)
+	ls.ctx_cancel = elect_cancel
 	defer elect_cancel()
 	lock := &election_resource.LeaseLock{
 		LeaseMeta: k8smetav1.ObjectMeta{
-			Name:      *object_name,
-			Namespace: *namespace,
+			Name:      ls.object_name,
+			Namespace: ls.namespace,
 		},
-		Client: clientset.CoordinationV1(),
+		Client: ls.clientset.CoordinationV1(),
 		LockConfig: election_resource.ResourceLockConfig{
-			Identity: identity,
+			Identity: ls.identity,
 		},
 	}
 	log.Print("election.RunOrDie()...")
@@ -83,18 +101,18 @@ func Main(args []string) error {
 		Callbacks: election.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
 				log.Print("OnStartedLeading()")
-				if err := cmd.Run(elect_cancel); err != nil {
-					log.Fatal(err)
-				}
+				onLockAcquired()
 			},
 			OnStoppedLeading: func() {
 				log.Print("OnStoppedLeading()")
-				cmd.Stop()
-				log.Print("elect_cancel()")
-				elect_cancel()
+				onLockLost()
 			},
 		},
 	})
 
 	return nil
+}
+
+func (ls *K8sLockingSystem) Stop() {
+	ls.ctx_cancel()
 }
