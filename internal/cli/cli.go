@@ -53,7 +53,7 @@ func GracePeriod() time.Duration {
 	return *gracePeriod
 }
 
-func randomIdentity() string {
+func RandomIdentity() string {
 	bytes := make([]byte, 20)
 	_, err := rand.Read(bytes)
 	if err != nil {
@@ -64,7 +64,7 @@ func randomIdentity() string {
 
 func Identity() string {
 	if identity == nil {
-		new_identity := randomIdentity()
+		new_identity := RandomIdentity()
 		identity = &new_identity
 	}
 	return *identity

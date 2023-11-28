@@ -8,6 +8,8 @@ import "log"
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/internal/cli"
 
+type S3LockingSystem struct{}
+
 func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	// Set up command line parser
 	flagset := flag.NewFlagSet("k8s", flag.ExitOnError)
@@ -31,8 +33,6 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	locking_system := S3LockingSystem{}
 	return &locking_system, flagset.Args(), nil
 }
-
-type S3LockingSystem struct{}
 
 func (ls *S3LockingSystem) Run(
 	ctx context.Context,

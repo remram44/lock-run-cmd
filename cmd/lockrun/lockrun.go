@@ -6,9 +6,9 @@ import "log"
 import "os"
 
 import "github.com/remram44/lock-run-cmd"
-import "github.com/remram44/lock-run-cmd/internal/k8s"
-import "github.com/remram44/lock-run-cmd/internal/etcd"
-import "github.com/remram44/lock-run-cmd/internal/s3"
+import "github.com/remram44/lock-run-cmd/k8s"
+import "github.com/remram44/lock-run-cmd/etcd"
+import "github.com/remram44/lock-run-cmd/s3"
 
 func main() {
 	// Get locking system from command line

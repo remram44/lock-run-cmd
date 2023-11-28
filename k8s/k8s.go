@@ -16,6 +16,14 @@ import election_resource "k8s.io/client-go/tools/leaderelection/resourcelock"
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/internal/cli"
 
+type K8sLockingSystem struct {
+	namespace   string
+	object_name string
+	identity    string
+	clientset   *kubernetes.Clientset
+	ctx_cancel  func()
+}
+
 func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	// Set up command line parser
 	flagset := flag.NewFlagSet("k8s", flag.ExitOnError)
@@ -37,39 +45,53 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	identity := cli.Identity()
 	log.Printf("Using identity %v", identity)
 
-	// Create Kubernetes API client
-	var err error
-	var config *k8srest.Config
-	if in_cluster {
-		config, err = k8srest.InClusterConfig()
-	} else {
-		config, err = k8sclientcmd.BuildConfigFromFlags("", *kubeconfig)
+	kubeconfig_arg := ""
+	if !in_cluster {
+		kubeconfig_arg = *kubeconfig
 	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("Can't load Kubernetes config: %w", err)
-	}
-	config.UserAgent = "lock-run-cmd"
-	clientset, err := kubernetes.NewForConfig(config)
+	locking_system, err := New(
+		kubeconfig_arg,
+		*namespace,
+		*object_name,
+		identity,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	return locking_system, flagset.Args(), nil
+}
+
+func New(kubeconfig string, namespace string, object_name string, identity string) (lockrun.LockingSystem, error) {
+	// Create Kubernetes API client
+	var config *k8srest.Config
+	var err error
+	if kubeconfig == "" {
+		config, err = k8srest.InClusterConfig()
+	} else {
+		config, err = k8sclientcmd.BuildConfigFromFlags("", kubeconfig)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Can't load Kubernetes config: %w", err)
+	}
+	config.UserAgent = "lock-run-cmd"
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	if identity == "" {
+		identity = cli.RandomIdentity()
+	}
+
 	locking_system := K8sLockingSystem{
-		namespace:   *namespace,
-		object_name: *object_name,
+		namespace:   namespace,
+		object_name: object_name,
 		clientset:   clientset,
 		identity:    identity,
 		ctx_cancel:  nil,
 	}
-	return &locking_system, flagset.Args(), nil
-}
-
-type K8sLockingSystem struct {
-	namespace   string
-	object_name string
-	identity    string
-	clientset   *kubernetes.Clientset
-	ctx_cancel  func()
+	return &locking_system, nil
 }
 
 func (ls *K8sLockingSystem) Run(

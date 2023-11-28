@@ -8,6 +8,8 @@ import "log"
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/internal/cli"
 
+type EtcdLockingSystem struct{}
+
 func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	// Set up command line parser
 	flagset := flag.NewFlagSet("k8s", flag.ExitOnError)
@@ -37,8 +39,6 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	locking_system := EtcdLockingSystem{}
 	return &locking_system, flagset.Args(), nil
 }
-
-type EtcdLockingSystem struct{}
 
 func (ls *EtcdLockingSystem) Run(
 	ctx context.Context,
