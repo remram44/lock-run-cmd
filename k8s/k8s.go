@@ -36,16 +36,14 @@ func Main(args []string) error {
 		return err
 	}
 
-	identity, err := common.RandomIdentity()
-	if err != nil {
-		return err
-	}
+	identity := common.Identity()
 	log.Printf("Using identity %v", identity)
 
 	// Debug
 	log.Printf("kubeconfig=%v in_cluster=%v namespace=%v lease-interval=%v lease-duration=%v", *kubeconfig, in_cluster, namespace, common.LeaseInterval(), common.LeaseDuration())
 
 	// Create Kubernetes API client
+	var err error
 	var config *k8srest.Config
 	if in_cluster {
 		config, err = k8srest.InClusterConfig()

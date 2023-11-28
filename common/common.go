@@ -4,6 +4,7 @@ import "crypto/rand"
 import "encoding/hex"
 import "flag"
 import "fmt"
+import "log"
 import "time"
 
 var leaseInterval = flag.Duration(
@@ -12,6 +13,7 @@ var leaseInterval = flag.Duration(
 	"Interval between lease renewal",
 )
 var leaseDuration *time.Duration = nil
+var identity *string = nil
 
 func RegisterFlags(fs *flag.FlagSet) {
 	fs.Func("lease-duration", "Length of the lease", func(arg string) error {
@@ -21,6 +23,11 @@ func RegisterFlags(fs *flag.FlagSet) {
 			return err
 		}
 		leaseDuration = &duration
+		return nil
+	})
+
+	fs.Func("identity", "Identity of this process", func(arg string) error {
+		identity = &arg
 		return nil
 	})
 }
@@ -37,6 +44,14 @@ func LeaseDuration() time.Duration {
 	}
 }
 
+func Identity() string {
+	if identity == nil {
+		new_identity := RandomIdentity()
+		identity = &new_identity
+	}
+	return *identity
+}
+
 func SetBool(target *bool) func(string) error {
 	return func(arg string) error {
 		switch arg {
@@ -51,11 +66,11 @@ func SetBool(target *bool) func(string) error {
 	}
 }
 
-func RandomIdentity() (string, error) {
+func RandomIdentity() string {
 	bytes := make([]byte, 20)
 	_, err := rand.Read(bytes)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
-	return hex.EncodeToString(bytes), nil
+	return hex.EncodeToString(bytes)
 }
