@@ -13,7 +13,7 @@ import "github.com/remram44/lock-run-cmd/s3"
 func main() {
 	// Get locking system from command line
 	usage := func() {
-		fmt.Printf("Usage: %v [k8s|etcd] ...\n", os.Args[0])
+		fmt.Printf("Usage: %v [k8s|etcd|s3] ...\n", os.Args[0])
 	}
 	if len(os.Args) < 2 {
 		usage()
