@@ -1,19 +1,18 @@
 package main
 
 import "context"
+import "errors"
 import "fmt"
 import "log"
 import "os"
 
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/k8s"
-import "github.com/remram44/lock-run-cmd/etcd"
-import "github.com/remram44/lock-run-cmd/s3"
 
 func main() {
 	// Get locking system from command line
 	usage := func() {
-		fmt.Printf("Usage: %v [k8s|etcd] ...\n", os.Args[0])
+		fmt.Printf("Usage: %v k8s ...\n", os.Args[0])
 	}
 	if len(os.Args) < 2 {
 		usage()
@@ -29,9 +28,9 @@ func main() {
 	case "k8s":
 		locking_system, args, err = k8s.Parse(os.Args[2:])
 	case "etcd":
-		locking_system, args, err = etcd.Parse(os.Args[2:])
+		err = errors.New("Not yet implemented")
 	case "s3":
-		locking_system, args, err = s3.Parse(os.Args[2:])
+		err = errors.New("Not yet implemented")
 	default:
 		usage()
 		os.Exit(2)
