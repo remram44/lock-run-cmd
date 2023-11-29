@@ -29,7 +29,7 @@ $ lock-run-cmd k8s --kubeconfig=$KUBECONFIG --namespace=mynamespace --lease-obje
 Lock via ETCD:
 
 ```
-$ lock-run-cmd etcd --endpoints=10.0.1.1:2379 --cacert=/etc/etcd/ca.crt --cert=/etc/etcd/client.crt --key=/etc/etcd/client.key --lease-key=myprogram-lease ./myprogram
+$ lock-run-cmd etcd --endpoints=10.0.1.1:2379 --cacert=/etc/etcd/ca.crt --cert=/etc/etcd/client.crt --key=/etc/etcd/client.key --lease-key=/myprogram-lease ./myprogram
 ```
 
 Lock via S3:
