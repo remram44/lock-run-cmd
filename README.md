@@ -7,6 +7,13 @@ The goal is to make sure only a single instance of a command is running at any g
 
 In spirit, this is similar to [the flock shell command](https://www.man7.org/linux/man-pages/man1/flock.1.html), except that it uses remote services, and might terminate the command (UNIX locks cannot be "lost").
 
+Current status
+--------------
+
+* Locking via a Kubernetes API server works.
+* Locking via ETCD is in progress
+* Locking via S3 is not yet implemented
+
 Timing
 ------
 
