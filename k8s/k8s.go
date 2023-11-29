@@ -138,3 +138,6 @@ func (ls *K8sLockingSystem) Run(
 func (ls *K8sLockingSystem) Stop() {
 	ls.ctx_cancel()
 }
+
+func (ls *K8sLockingSystem) Close() {
+}

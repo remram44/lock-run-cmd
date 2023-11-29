@@ -39,6 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer locking_system.Close()
 
 	// Create command
 	cmd := lockrun.NewCommandRunner(args)

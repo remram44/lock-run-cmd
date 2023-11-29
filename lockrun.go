@@ -9,4 +9,5 @@ type LockingSystem interface {
 		onLockLost func(),
 	) error
 	Stop()
+	Close()
 }

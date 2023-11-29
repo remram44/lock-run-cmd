@@ -51,3 +51,6 @@ func (ls *EtcdLockingSystem) Run(
 func (ls *EtcdLockingSystem) Stop() {
 	// TODO
 }
+
+func (ls *EtcdLockingSystem) Close() {
+}

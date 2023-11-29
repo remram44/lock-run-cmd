@@ -45,3 +45,6 @@ func (ls *S3LockingSystem) Run(
 func (ls *S3LockingSystem) Stop() {
 	// TODO
 }
+
+func (ls *S3LockingSystem) Close() {
+}
