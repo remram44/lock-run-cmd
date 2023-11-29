@@ -1,9 +1,11 @@
 lock and run command
 ====================
 
-This is a simple program that will acquire a lock or lease before running a command, and will stop the command if it is lost.
+This is a simple program that will acquire a lock (or "lease") before running a command, and will stop the command if it is lost.
 
 The goal is to make sure only a single instance of a command is running at any given time, using a network-based locking mechanism where a lock can be lost.
+
+In spirit, this is similar to [the flock shell command](https://www.man7.org/linux/man-pages/man1/flock.1.html), except that it uses remote services, and might terminate the command (UNIX locks cannot be "lost").
 
 Timing
 ------
