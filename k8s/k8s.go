@@ -11,17 +11,17 @@ import k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 import k8srest "k8s.io/client-go/rest"
 import "k8s.io/client-go/kubernetes"
 import election "k8s.io/client-go/tools/leaderelection"
-import election_resource "k8s.io/client-go/tools/leaderelection/resourcelock"
+import electionResource "k8s.io/client-go/tools/leaderelection/resourcelock"
 
 import "github.com/remram44/lock-run-cmd"
 import "github.com/remram44/lock-run-cmd/internal/cli"
 
 type K8sLockingSystem struct {
-	namespace   string
-	object_name string
-	identity    string
-	clientset   *kubernetes.Clientset
-	ctx_cancel  func()
+	namespace  string
+	objectName string
+	identity   string
+	clientset  *kubernetes.Clientset
+	ctxCancel  func()
 }
 
 func Parse(args []string) (lockrun.LockingSystem, []string, error) {
@@ -31,12 +31,12 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 
 	kubeconfig := flagset.String("kubeconfig", "~/.kube/config", "Configuration file")
 
-	in_cluster := false
-	flagset.BoolFunc("in-cluster", "Use in-cluster config", cli.SetBool(&in_cluster))
+	inCluster := false
+	flagset.BoolFunc("in-cluster", "Use in-cluster config", cli.SetBool(&inCluster))
 
 	namespace := flagset.String("namespace", "default", "Kubernetes namespace")
 
-	object_name := flagset.String("lease-object", "lock", "Lease object name")
+	objectName := flagset.String("lease-object", "lock", "Lease object name")
 
 	if err := flagset.Parse(args); err != nil {
 		return nil, nil, err
@@ -45,24 +45,24 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	identity := cli.Identity()
 	log.Printf("Using identity %v", identity)
 
-	kubeconfig_arg := ""
-	if !in_cluster {
-		kubeconfig_arg = *kubeconfig
+	kubeconfigArg := ""
+	if !inCluster {
+		kubeconfigArg = *kubeconfig
 	}
-	locking_system, err := New(
-		kubeconfig_arg,
+	lockingSystem, err := New(
+		kubeconfigArg,
 		*namespace,
-		*object_name,
+		*objectName,
 		identity,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return locking_system, flagset.Args(), nil
+	return lockingSystem, flagset.Args(), nil
 }
 
-func New(kubeconfig string, namespace string, object_name string, identity string) (lockrun.LockingSystem, error) {
+func New(kubeconfig string, namespace string, objectName string, identity string) (lockrun.LockingSystem, error) {
 	// Create Kubernetes API client
 	var config *k8srest.Config
 	var err error
@@ -84,14 +84,14 @@ func New(kubeconfig string, namespace string, object_name string, identity strin
 		identity = cli.RandomIdentity()
 	}
 
-	locking_system := K8sLockingSystem{
-		namespace:   namespace,
-		object_name: object_name,
-		clientset:   clientset,
-		identity:    identity,
-		ctx_cancel:  nil,
+	lockingSystem := K8sLockingSystem{
+		namespace:  namespace,
+		objectName: objectName,
+		clientset:  clientset,
+		identity:   identity,
+		ctxCancel:  nil,
 	}
-	return &locking_system, nil
+	return &lockingSystem, nil
 }
 
 func (ls *K8sLockingSystem) Run(
@@ -100,21 +100,21 @@ func (ls *K8sLockingSystem) Run(
 	onLockLost func(),
 ) error {
 	// Kick off leaderelection code
-	elect_ctx, elect_cancel := context.WithCancel(ctx)
-	ls.ctx_cancel = elect_cancel
-	defer elect_cancel()
-	lock := &election_resource.LeaseLock{
+	electCtx, electCancel := context.WithCancel(ctx)
+	ls.ctxCancel = electCancel
+	defer electCancel()
+	lock := &electionResource.LeaseLock{
 		LeaseMeta: k8smetav1.ObjectMeta{
-			Name:      ls.object_name,
+			Name:      ls.objectName,
 			Namespace: ls.namespace,
 		},
 		Client: ls.clientset.CoordinationV1(),
-		LockConfig: election_resource.ResourceLockConfig{
+		LockConfig: electionResource.ResourceLockConfig{
 			Identity: ls.identity,
 		},
 	}
 	log.Print("election.RunOrDie()...")
-	election.RunOrDie(elect_ctx, election.LeaderElectionConfig{
+	election.RunOrDie(electCtx, election.LeaderElectionConfig{
 		Lock:            lock,
 		ReleaseOnCancel: true,
 		LeaseDuration:   cli.LeaseDuration(),
@@ -136,7 +136,7 @@ func (ls *K8sLockingSystem) Run(
 }
 
 func (ls *K8sLockingSystem) Stop() {
-	ls.ctx_cancel()
+	ls.ctxCancel()
 }
 
 func (ls *K8sLockingSystem) Close() {

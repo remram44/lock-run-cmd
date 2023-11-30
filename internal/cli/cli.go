@@ -64,8 +64,8 @@ func RandomIdentity() string {
 
 func Identity() string {
 	if identity == nil {
-		new_identity := RandomIdentity()
-		identity = &new_identity
+		newIdentity := RandomIdentity()
+		identity = &newIdentity
 	}
 	return *identity
 }

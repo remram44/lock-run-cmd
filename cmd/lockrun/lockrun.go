@@ -19,14 +19,14 @@ func main() {
 		os.Exit(2)
 	}
 	var err error = nil
-	var locking_system lockrun.LockingSystem = nil
+	var lockingSystem lockrun.LockingSystem = nil
 	var args []string = nil
 	switch os.Args[1] {
 	case "help", "-help", "--help":
 		usage()
 		os.Exit(0)
 	case "k8s":
-		locking_system, args, err = k8s.Parse(os.Args[2:])
+		lockingSystem, args, err = k8s.Parse(os.Args[2:])
 	case "etcd":
 		err = errors.New("Not yet implemented")
 	case "s3":
@@ -38,16 +38,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer locking_system.Close()
+	defer lockingSystem.Close()
 
 	// Create command
 	cmd := lockrun.NewCommandRunner(args)
 
 	// Run locking system
-	err = locking_system.Run(
+	err = lockingSystem.Run(
 		context.Background(),
 		func() {
-			if err := cmd.Run(locking_system.Stop); err != nil {
+			if err := cmd.Run(lockingSystem.Stop); err != nil {
 				log.Fatal(err)
 			}
 		},
