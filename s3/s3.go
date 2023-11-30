@@ -30,8 +30,8 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	// TODO
 	log.Println(bucket, object)
 
-	locking_system := S3LockingSystem{}
-	return &locking_system, flagset.Args(), nil
+	lockingSystem := S3LockingSystem{}
+	return &lockingSystem, flagset.Args(), nil
 }
 
 func (ls *S3LockingSystem) Run(

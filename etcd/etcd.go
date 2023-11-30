@@ -28,11 +28,11 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 
 	endpoints := flagset.String("endpoints", "127.0.0.1:2379", "Comma-separated list of host:port")
 
-	ca_cert := flagset.String("cacert", "", "Path to CA certificate")
+	caCert := flagset.String("cacert", "", "Path to CA certificate")
 
-	client_cert := flagset.String("cert", "", "Path to client certificate")
+	clientCert := flagset.String("cert", "", "Path to client certificate")
 
-	client_key := flagset.String("key", "", "Path to client key")
+	clientKey := flagset.String("key", "", "Path to client key")
 
 	username := flagset.String("username", "", "User name for authentication")
 
@@ -48,23 +48,23 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 	log.Printf("Using identity %v", identity)
 
 	// Prepare TLS configuration if requested
-	var tls_config *tls.Config = nil
-	if *ca_cert != "" || *client_cert != "" || *client_key != "" {
-		tls_info := etcdtransport.TLSInfo{
-			TrustedCAFile: *ca_cert,
-			CertFile:      *client_cert,
-			KeyFile:       *client_key,
+	var tlsConfig *tls.Config = nil
+	if *caCert != "" || *clientCert != "" || *clientKey != "" {
+		tlsInfo := etcdtransport.TLSInfo{
+			TrustedCAFile: *caCert,
+			CertFile:      *clientCert,
+			KeyFile:       *clientKey,
 		}
-		cfg, err := tls_info.ClientConfig()
+		cfg, err := tlsInfo.ClientConfig()
 		if err != nil {
 			return nil, nil, fmt.Errorf("Can't load certificates: %w", err)
 		}
-		tls_config = cfg
+		tlsConfig = cfg
 	}
 
-	endpoints_slice := strings.Split(*endpoints, ",")
-	locking_system, err := New(endpoints_slice,
-		tls_config,
+	endpointsSlice := strings.Split(*endpoints, ",")
+	lockingSystem, err := New(endpointsSlice,
+		tlsConfig,
 		*username,
 		*password,
 		*key,
@@ -74,12 +74,12 @@ func Parse(args []string) (lockrun.LockingSystem, []string, error) {
 		return nil, nil, err
 	}
 
-	return locking_system, flagset.Args(), nil
+	return lockingSystem, flagset.Args(), nil
 }
 
 func New(
 	endpoints []string,
-	tls_config *tls.Config,
+	tlsConfig *tls.Config,
 	username string,
 	password string,
 	key string,
@@ -89,7 +89,7 @@ func New(
 	config := etcdv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
-		TLS:         tls_config,
+		TLS:         tlsConfig,
 		Username:    username,
 		Password:    password,
 	}
@@ -98,11 +98,11 @@ func New(
 		return nil, err
 	}
 
-	locking_system := EtcdLockingSystem{
+	lockingSystem := EtcdLockingSystem{
 		client: client,
 		key:    key,
 	}
-	return &locking_system, nil
+	return &lockingSystem, nil
 }
 
 func (ls *EtcdLockingSystem) Run(
